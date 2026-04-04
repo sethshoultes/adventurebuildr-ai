@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id // Clerk user ID
+  email           String         @unique
+  plan            Plan           @default(FREE)
+  tokenBudgetUsed Int            @default(0)
+  stories         Story[]
+  progress        UserProgress[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model Story {
+  id              String         @id @default(cuid())
+  authorId        String
+  author          User           @relation(fields: [authorId], references: [id])
+  title           String
+  slug            String         @unique
+  description     String?
+  genre           String?
+  tone            String?
+  status          StoryStatus    @default(DRAFT)
+  settings        Json           @default("{}")
+  coverImageUrl   String?
+  worldBible      Json           @default("{}")
+  tokenBudgetUsed Int            @default(0)
+  episodes        Episode[]
+  choices         Choice[]
+  entities        Entity[]
+  stateVariables  StateVariable[]
+  universes       Universe[]
+  storylines      Storyline[]
+  events          StoryEvent[]
+  aiGenerations   AIGeneration[]
+  progress        UserProgress[]
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([authorId])
+  @@index([slug])
+  @@index([status])
+}
+
+enum StoryStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Episode {
+  id             String          @id @default(cuid())
+  storyId        String
+  story          Story           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title          String
+  content        String          @db.Text
+  summary        String?
+  isStartEpisode Boolean         @default(false)
+  positionX      Float           @default(0)
+  positionY      Float           @default(0)
+  season         Int             @default(1)
+  episodeNumber  Int             @default(1)
+  metadata       Json            @default("{}")
+  choicesFrom    Choice[]        @relation("FromEpisode")
+  choicesTo      Choice[]        @relation("ToEpisode")
+  entities       EpisodeEntity[]
+  events         StoryEvent[]
+  progress       UserProgress[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([storyId])
+}
+
+model Choice {
+  id            String       @id @default(cuid())
+  storyId       String
+  story         Story        @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  fromEpisodeId String
+  fromEpisode   Episode      @relation("FromEpisode", fields: [fromEpisodeId], references: [id])
+  toEpisodeId   String
+  toEpisode     Episode      @relation("ToEpisode", fields: [toEpisodeId], references: [id])
+  label         String
+  conditions    Json         @default("[]")
+  consequences  Json         @default("[]")
+  sortOrder     Int          @default(0)
+  events        StoryEvent[]
+  createdAt     DateTime     @default(now())
+
+  @@index([storyId])
+  @@index([fromEpisodeId])
+}
+
+model Entity {
+  id          String          @id @default(cuid())
+  storyId     String
+  story       Story           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  type        EntityType
+  name        String
+  description String          @db.Text
+  attributes  Json            @default("{}")
+  aiGenerated Boolean         @default(false)
+  episodes    EpisodeEntity[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([storyId])
+  @@index([type])
+}
+
+enum EntityType {
+  CHARACTER
+  LOCATION
+  ITEM
+  LORE
+  ORGANIZATION
+  TECHNOLOGY
+  LAW
+  VEHICLE
+  WEAPON
+}
+
+model EpisodeEntity {
+  episodeId String
+  episode   Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  entityId  String
+  entity    Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  role      String?
+
+  @@id([episodeId, entityId])
+}
+
+model Universe {
+  id          String         @id @default(cuid())
+  storyId     String
+  story       Story          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  progress    UserProgress[]
+}
+
+model Storyline {
+  id          String @id @default(cuid())
+  storyId     String
+  story       Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  sortOrder   Int    @default(0)
+}
+
+model StateVariable {
+  id           String       @id @default(cuid())
+  storyId      String
+  story        Story        @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  name         String
+  type         VariableType
+  defaultValue String       @default("0")
+  description  String?
+
+  @@index([storyId])
+}
+
+enum VariableType {
+  NUMBER
+  BOOLEAN
+  STRING
+}
+
+model UserProgress {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  storyId          String
+  story            Story     @relation(fields: [storyId], references: [id])
+  universeId       String?
+  universe         Universe? @relation(fields: [universeId], references: [id])
+  currentEpisodeId String?
+  currentEpisode   Episode?  @relation(fields: [currentEpisodeId], references: [id])
+  choicesMade      Json      @default("[]")
+  state            Json      @default("{}")
+  startedAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([userId, storyId, universeId])
+  @@index([storyId])
+}
+
+model AIGeneration {
+  id               String   @id @default(cuid())
+  storyId          String
+  story            Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  episodeId        String?
+  generationType   String
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  costUsd          Float
+  createdAt        DateTime @default(now())
+
+  @@index([storyId])
+  @@index([createdAt])
+}
+
+model StoryEvent {
+  id        String   @id @default(cuid())
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  userId    String?
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+  choiceId  String?
+  choice    Choice?  @relation(fields: [choiceId], references: [id])
+  eventType String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([storyId, eventType])
+  @@index([createdAt])
+}

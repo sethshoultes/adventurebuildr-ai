@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@layer base {
+  :root {
+    --story-amber: 30 62% 50%;
+    --canvas-slate: 222 27% 18%;
+    --parchment: 35 38% 93%;
+    --twilight-indigo: 239 29% 50%;
+  }
+
+  * {
+    @apply border-warm-400/20;
+  }
+
+  body {
+    @apply bg-white text-warm-500 font-body antialiased;
+  }
+}
+
+@layer components {
+  .canvas-node {
+    @apply bg-white rounded-standard shadow-subtle border border-warm-400/20 w-[260px] min-h-[120px] transition-shadow duration-150 ease-out;
+  }
+
+  .canvas-node:hover {
+    @apply shadow-elevated;
+  }
+
+  .canvas-node.selected {
+    @apply border-2 border-amber-story shadow-elevated;
+  }
+
+  .canvas-node.generating {
+    @apply animate-pulse-glow;
+  }
+
+  .choice-edge-label {
+    @apply bg-white border border-gray-300 rounded-[10px] px-3 py-1.5 shadow-subtle text-[11px] font-medium text-warm-500 max-w-[120px] leading-snug;
+  }
+
+  .reader-dark {
+    --bg: #0D0D0D;
+    --title: #F0EDE6;
+    --body: #E0DCD5;
+    --card-bg: #1A1A1A;
+    --card-border: #2A2A2A;
+    --card-text: #E0DCD5;
+    --accent: #C8833A;
+  }
+
+  .reader-warm {
+    --bg: #F5F0E8;
+    --title: #2C1810;
+    --body: #4A3728;
+    --card-bg: #FFFFFF;
+    --card-border: transparent;
+    --card-text: #2C1810;
+    --accent: #A0522D;
+  }
+
+  .reader-neutral {
+    --bg: #FFFFFF;
+    --title: #1A1A1A;
+    --body: #1A1A1A;
+    --card-bg: #F5F5F5;
+    --card-border: #E0E0E0;
+    --card-text: #1A1A1A;
+    --accent: #3B82F6;
+  }
+}
+
+/* Typewriter cursor */
+.typewriter-cursor {
+  display: inline-block;
+  width: 1px;
+  height: 1.2em;
+  background-color: currentColor;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ReactFlow overrides */
+.react-flow__node {
+  cursor: pointer !important;
+}
+
+.react-flow__edge-path {
+  stroke: #c8833a !important;
+  stroke-width: 2px !important;
+}
+
+.react-flow__minimap {
+  background: rgba(0, 0, 0, 0.75) !important;
+  border-radius: 8px !important;
+  border: none !important;
+}
+
+/* Tiptap editor */
+.tiptap-editor .ProseMirror {
+  @apply min-h-[300px] p-4 text-base leading-[1.7] font-body outline-none;
+}
+
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-warm-200 float-left h-0 pointer-events-none;
+  content: attr(data-placeholder);
+}
+
+.tiptap-editor .ProseMirror h1 {
+  @apply text-2xl font-display font-semibold mb-4;
+}
+
+.tiptap-editor .ProseMirror h2 {
+  @apply text-xl font-display font-semibold mb-3;
+}
+
+.tiptap-editor .ProseMirror h3 {
+  @apply text-lg font-display font-semibold mb-2;
+}
+
+.tiptap-editor .ProseMirror strong {
+  @apply font-semibold;
+}
+
+.tiptap-editor .ProseMirror ul {
+  @apply list-disc pl-6 mb-4;
+}
+
+.tiptap-editor .ProseMirror ol {
+  @apply list-decimal pl-6 mb-4;
+}
+
+.tiptap-editor .ProseMirror blockquote {
+  @apply border-l-4 border-amber-story pl-4 italic my-4;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
