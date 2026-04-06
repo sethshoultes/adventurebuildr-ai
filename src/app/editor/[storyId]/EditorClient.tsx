@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-// import { UserButton } from "@clerk/nextjs";
-import { ArrowLeft, Eye, Settings } from "lucide-react";
+import { ArrowLeft, Eye, Settings, Globe, GlobeLock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoryProvider, useStory } from "@/components/providers/StoryProvider";
 import { SplitPane } from "@/components/editor/SplitPane";
@@ -17,10 +16,72 @@ interface EditorClientProps {
   stateVariables: StateVariable[];
 }
 
+interface TokenBudget {
+  allowed: boolean;
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+function TokenUsageBar({ budget }: { budget: TokenBudget | null }) {
+  if (!budget) return null;
+  const isUnlimited = budget.limit === -1;
+  const pct = isUnlimited ? 0 : Math.min(100, (budget.used / budget.limit) * 100);
+  const label = isUnlimited
+    ? `${budget.used.toLocaleString()} tokens used`
+    : `${budget.used.toLocaleString()} / ${budget.limit.toLocaleString()}`;
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-warm-300">
+      <span className="whitespace-nowrap">{label}</span>
+      {!isUnlimited && (
+        <div className="w-20 h-1.5 bg-warm-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              pct > 90 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500"
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditorInner({ story: initialStory }: { story: Story }) {
-  const { story, selectedEpisodeId, selectEpisode } = useStory();
+  const { story, setStory, selectedEpisodeId, selectEpisode } = useStory();
+  const [publishing, setPublishing] = useState(false);
+  const [tokenBudget, setTokenBudget] = useState<TokenBudget | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/token-usage")
+      .then((r) => r.json())
+      .then((data) => setTokenBudget(data))
+      .catch(() => {});
+  }, []);
+
+  const togglePublish = useCallback(async () => {
+    if (!story) return;
+    setPublishing(true);
+    try {
+      const newStatus = story.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+      const res = await fetch(`/api/stories/${story.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setStory({ ...story, status: updated.status, publishedAt: updated.publishedAt });
+      }
+    } finally {
+      setPublishing(false);
+    }
+  }, [story, setStory]);
 
   if (!story) return null;
+
+  const isPublished = story.status === "PUBLISHED";
 
   return (
     <div className="h-screen flex flex-col">
@@ -36,13 +97,18 @@ function EditorInner({ story: initialStory }: { story: Story }) {
           <span className="font-display text-sm font-semibold text-warm-500 truncate max-w-[200px]">
             {story.title}
           </span>
-          <span className="text-xs text-warm-200 bg-warm-50 px-2 py-0.5 rounded-tight">
-            {story.status.toLowerCase()}
+          <span className={`text-xs px-2 py-0.5 rounded-tight ${
+            isPublished
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-warm-50 text-warm-200"
+          }`}>
+            {isPublished ? "published" : story.status.toLowerCase()}
           </span>
+          <TokenUsageBar budget={tokenBudget} />
         </div>
 
         <div className="flex items-center gap-2">
-          {story.status === "PUBLISHED" && (
+          {isPublished && (
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/reader/${story.slug}`} target="_blank">
                 <Eye className="w-4 h-4 mr-1" />
@@ -50,6 +116,24 @@ function EditorInner({ story: initialStory }: { story: Story }) {
               </Link>
             </Button>
           )}
+          <Button
+            variant={isPublished ? "outline" : "default"}
+            size="sm"
+            onClick={togglePublish}
+            disabled={publishing}
+          >
+            {isPublished ? (
+              <>
+                <GlobeLock className="w-4 h-4 mr-1" />
+                Unpublish
+              </>
+            ) : (
+              <>
+                <Globe className="w-4 h-4 mr-1" />
+                Publish
+              </>
+            )}
+          </Button>
           <Button variant="ghost" size="icon">
             <Settings className="w-4 h-4" />
           </Button>
