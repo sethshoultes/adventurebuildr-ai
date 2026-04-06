@@ -53,29 +53,47 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   }
 
   const body = await req.json();
-  const { currentEpisodeId, choicesMade, state } = body;
+  const { currentEpisodeId, choicesMade, state, universeId } = body;
 
-  const progress = await db.userProgress.upsert({
-    where: {
-      userId_storyId_universeId: {
+  try {
+    // Find existing progress (can't upsert with nullable composite key)
+    const existing = await db.userProgress.findFirst({
+      where: {
         userId,
         storyId: story.id,
-        universeId: body.universeId ?? null,
+        universeId: universeId ?? null,
       },
-    },
-    update: {
-      currentEpisodeId,
-      choicesMade: choicesMade || [],
-      state: state || {},
-    },
-    create: {
-      userId,
-      storyId: story.id,
-      currentEpisodeId,
-      choicesMade: choicesMade || [],
-      state: state || {},
-    },
-  });
+    });
 
-  return NextResponse.json({ progress });
+    let progress;
+    if (existing) {
+      progress = await db.userProgress.update({
+        where: { id: existing.id },
+        data: {
+          currentEpisodeId,
+          choicesMade: choicesMade || [],
+          state: state || {},
+        },
+      });
+    } else {
+      progress = await db.userProgress.create({
+        data: {
+          userId,
+          storyId: story.id,
+          universeId: universeId ?? null,
+          currentEpisodeId,
+          choicesMade: choicesMade || [],
+          state: state || {},
+        },
+      });
+    }
+
+    return NextResponse.json({ progress });
+  } catch (error) {
+    console.error("Failed to save progress:", error);
+    return NextResponse.json(
+      { error: "Failed to save progress" },
+      { status: 500 }
+    );
+  }
 }
