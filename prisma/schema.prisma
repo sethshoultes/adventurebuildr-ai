@@ -91,9 +91,9 @@ model Choice {
   storyId       String
   story         Story        @relation(fields: [storyId], references: [id], onDelete: Cascade)
   fromEpisodeId String
-  fromEpisode   Episode      @relation("FromEpisode", fields: [fromEpisodeId], references: [id])
+  fromEpisode   Episode      @relation("FromEpisode", fields: [fromEpisodeId], references: [id], onDelete: Cascade)
   toEpisodeId   String
-  toEpisode     Episode      @relation("ToEpisode", fields: [toEpisodeId], references: [id])
+  toEpisode     Episode      @relation("ToEpisode", fields: [toEpisodeId], references: [id], onDelete: Cascade)
   label         String
   conditions    Json         @default("[]")
   consequences  Json         @default("[]")
@@ -183,13 +183,13 @@ enum VariableType {
 model UserProgress {
   id               String    @id @default(cuid())
   userId           String
-  user             User      @relation(fields: [userId], references: [id])
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   storyId          String
-  story            Story     @relation(fields: [storyId], references: [id])
+  story            Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
   universeId       String?
-  universe         Universe? @relation(fields: [universeId], references: [id])
+  universe         Universe? @relation(fields: [universeId], references: [id], onDelete: SetNull)
   currentEpisodeId String?
-  currentEpisode   Episode?  @relation(fields: [currentEpisodeId], references: [id])
+  currentEpisode   Episode?  @relation(fields: [currentEpisodeId], references: [id], onDelete: SetNull)
   choicesMade      Json      @default("[]")
   state            Json      @default("{}")
   startedAt        DateTime  @default(now())
@@ -222,9 +222,9 @@ model StoryEvent {
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
   userId    String?
   episodeId String?
-  episode   Episode? @relation(fields: [episodeId], references: [id])
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
   choiceId  String?
-  choice    Choice?  @relation(fields: [choiceId], references: [id])
+  choice    Choice?  @relation(fields: [choiceId], references: [id], onDelete: SetNull)
   eventType String
   metadata  Json     @default("{}")
   createdAt DateTime @default(now())
