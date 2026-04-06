@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: adventurebuildr
+      POSTGRES_PASSWORD: adventurebuildr_secret
+      POSTGRES_DB: adventurebuildr
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adventurebuildr"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment below once Clerk keys are configured in .env
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     DATABASE_URL: "postgresql://adventurebuildr:adventurebuildr_secret@db:5432/adventurebuildr?schema=public"
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:

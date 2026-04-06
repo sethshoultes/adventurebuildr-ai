@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUser } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -8,7 +8,8 @@ interface RouteContext {
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   const { storyId } = await params;
-  const { userId } = await auth();
+  const _authUser = await getAuthUser();
+  const userId = _authUser?.userId;
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,7 +24,8 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { storyId } = await params;
-  const { userId } = await auth();
+  const _authUser = await getAuthUser();
+  const userId = _authUser?.userId;
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

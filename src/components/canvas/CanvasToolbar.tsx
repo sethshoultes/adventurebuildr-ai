@@ -8,6 +8,7 @@ import {
   Plus,
   LayoutGrid,
   Undo2,
+  Sparkles,
 } from "lucide-react";
 
 interface CanvasToolbarProps {
@@ -15,6 +16,7 @@ interface CanvasToolbarProps {
   onAutoLayout: () => void;
   onUndo: () => void;
   canUndo: boolean;
+  onOpenPremiseModal: () => void;
 }
 
 export function CanvasToolbar({
@@ -22,6 +24,7 @@ export function CanvasToolbar({
   onAutoLayout,
   onUndo,
   canUndo,
+  onOpenPremiseModal,
 }: CanvasToolbarProps) {
   const reactFlowInstance = useReactFlow();
 
@@ -39,7 +42,7 @@ export function CanvasToolbar({
         onClick={() => reactFlowInstance.zoomTo(1, { duration: 300 })}
       />
 
-      <div className="h-2" />
+      <div className="h-px bg-warm-400/10 my-1" />
 
       {/* Creation */}
       <ToolbarButton
@@ -49,11 +52,17 @@ export function CanvasToolbar({
       />
       <ToolbarButton
         icon={<LayoutGrid className="w-[18px] h-[18px]" />}
-        tooltip="Re-layout"
+        tooltip="Auto-layout"
         onClick={onAutoLayout}
       />
+      <ToolbarButton
+        icon={<Sparkles className="w-[18px] h-[18px]" />}
+        tooltip="Generate with AI"
+        onClick={onOpenPremiseModal}
+        highlight
+      />
 
-      <div className="h-2" />
+      <div className="h-px bg-warm-400/10 my-1" />
 
       {/* Undo */}
       <ToolbarButton
@@ -71,18 +80,24 @@ function ToolbarButton({
   tooltip,
   onClick,
   disabled,
+  highlight,
 }: {
   icon: React.ReactNode;
   tooltip: string;
   onClick: () => void;
   disabled?: boolean;
+  highlight?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       title={tooltip}
-      className="w-8 h-8 flex items-center justify-center rounded-tight text-slate-canvas hover:bg-black/[0.04] active:bg-black/[0.08] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+      className={
+        highlight
+          ? "w-8 h-8 flex items-center justify-center rounded-tight text-amber-story hover:bg-amber-story/10 active:bg-amber-story/20 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+          : "w-8 h-8 flex items-center justify-center rounded-tight text-slate-canvas hover:bg-black/[0.04] active:bg-black/[0.08] transition-colors disabled:opacity-50 disabled:pointer-events-none"
+      }
     >
       {icon}
     </button>

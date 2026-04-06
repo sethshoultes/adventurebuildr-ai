@@ -12,7 +12,7 @@ const buttonVariants = cva(
         destructive: "bg-red-600 text-white hover:bg-red-700",
         outline:
           "border border-warm-400/20 bg-white text-warm-300 hover:bg-warm-50 hover:text-warm-500",
-        secondary: "bg-warm-50 text-warm-500 hover:bg-warm-100/20",
+        secondary: "bg-warm-50 text-warm-500 hover:bg-warm-100",
         ghost: "hover:bg-black/[0.04] text-warm-300 hover:text-warm-500",
         link: "text-amber-story underline-offset-4 hover:underline",
       },

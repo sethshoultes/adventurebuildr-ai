@@ -61,7 +61,11 @@ function EpisodeNodeComponent({ data, selected }: NodeProps<EpisodeNodeData>) {
       {/* Content preview */}
       <div className="px-4 py-4">
         <p className="text-xs text-warm-200 leading-relaxed line-clamp-3">
-          {data.summary || (data.hasContent ? "Episode has content" : "Start your story here...")}
+          {data.summary
+            ? truncate(data.summary, 120)
+            : data.isStart
+              ? "Your story begins here. Click to write."
+              : "Empty episode. Click to add content."}
         </p>
       </div>
 

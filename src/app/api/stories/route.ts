@@ -1,13 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 import { generateSlug } from "@/lib/utils";
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await getAuthUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.userId;
 
   const stories = await db.story.findMany({
     where: { authorId: userId },
@@ -23,10 +24,11 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await getAuthUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.userId;
 
   const body = await req.json();
   const { title, description, genre, tone } = body;

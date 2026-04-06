@@ -1,15 +1,12 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
-
 @layer base {
   :root {
-    --story-amber: 30 62% 50%;
-    --canvas-slate: 222 27% 18%;
-    --parchment: 35 38% 93%;
-    --twilight-indigo: 239 29% 50%;
+    scroll-behavior: smooth;
   }
 
   * {
@@ -76,10 +73,11 @@
 /* Typewriter cursor */
 .typewriter-cursor {
   display: inline-block;
-  width: 1px;
-  height: 1.2em;
+  width: 2px;
+  height: 1.1em;
   background-color: currentColor;
   vertical-align: text-bottom;
+  border-radius: 1px;
   animation: blink 1s step-end infinite;
 }
 
@@ -156,5 +154,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .typewriter-cursor {
+    animation: none !important;
+    opacity: 1;
   }
 }

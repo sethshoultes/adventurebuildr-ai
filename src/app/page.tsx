@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { BookOpen, Sparkles, Map, Wand2, Users, BarChart3 } from "lucide-react";
+import CanvasBloom from "@/components/landing/CanvasBloom";
 
 export default function LandingPage() {
   return (
@@ -18,28 +18,12 @@ export default function LandingPage() {
             <Link href="#pricing" className="text-sm text-warm-300 hover:text-warm-500 transition-colors">
               Pricing
             </Link>
-            <SignedOut>
-              <Link
-                href="/sign-in"
-                className="text-sm text-warm-300 hover:text-warm-500 transition-colors"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/sign-up"
-                className="bg-amber-story text-white text-sm px-4 py-2 rounded-tight hover:bg-amber-dark transition-colors"
-              >
-                Start Free
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                className="bg-amber-story text-white text-sm px-4 py-2 rounded-tight hover:bg-amber-dark transition-colors"
-              >
-                Dashboard
-              </Link>
-            </SignedIn>
+            <Link
+              href="/dashboard"
+              className="bg-amber-story text-white text-sm px-4 py-2 rounded-tight hover:bg-amber-dark transition-colors"
+            >
+              Dashboard
+            </Link>
           </div>
         </div>
       </nav>
@@ -52,31 +36,21 @@ export default function LandingPage() {
             <br />
             <span className="text-amber-story">Watch it bloom.</span>
           </h1>
-          <p className="text-xl text-warm-200 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-xl text-warm-300 max-w-2xl mx-auto mb-10 leading-relaxed">
             Type a story premise. AI generates a complete branching narrative
             — characters, choices, consequences — displayed on a visual canvas
             you can edit, extend, and publish.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <SignedOut>
-              <Link
-                href="/sign-up"
-                className="bg-amber-story text-white px-8 py-3 rounded-standard text-base font-medium hover:bg-amber-dark transition-colors shadow-subtle"
-              >
-                Start Creating — Free
-              </Link>
-            </SignedOut>
-            <SignedIn>
-              <Link
-                href="/dashboard"
-                className="bg-amber-story text-white px-8 py-3 rounded-standard text-base font-medium hover:bg-amber-dark transition-colors shadow-subtle"
-              >
-                Go to Dashboard
-              </Link>
-            </SignedIn>
+            <Link
+              href="/dashboard"
+              className="bg-amber-story text-white px-8 py-3 rounded-standard text-base font-medium hover:bg-amber-dark transition-colors shadow-subtle min-h-[44px] flex items-center"
+            >
+              Start Creating — Free
+            </Link>
             <Link
               href="#features"
-              className="text-warm-300 px-8 py-3 rounded-standard text-base font-medium border border-warm-400/20 hover:border-warm-400/40 transition-colors"
+              className="text-warm-400 px-8 py-3 rounded-standard text-base font-medium border border-warm-400/20 hover:border-warm-400/40 hover:text-warm-500 transition-colors min-h-[44px] flex items-center"
             >
               See How It Works
             </Link>
@@ -84,23 +58,16 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Canvas Bloom Description */}
+      {/* Canvas Bloom Demo */}
       <section className="py-20 px-6 bg-slate-canvas">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-parchment/80 text-lg max-w-2xl mx-auto leading-relaxed font-display">
+          <p className="text-parchment/40 text-xs font-mono uppercase tracking-widest mb-4">
+            Live demo — generating now
+          </p>
+          <p className="text-parchment/80 text-lg max-w-2xl mx-auto leading-relaxed font-display mb-10 italic">
             &ldquo;A detective in 1940s Hong Kong discovers her client is already dead...&rdquo;
           </p>
-          <div className="mt-10 rounded-generous border border-white/10 overflow-hidden bg-warm-600 aspect-video flex items-center justify-center">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-amber-story animate-pulse-glow" />
-                <span className="text-parchment/60 text-sm">Writing your universe...</span>
-              </div>
-              <p className="text-parchment/40 text-xs">
-                Canvas bloom: nodes appear one by one as AI builds your story graph
-              </p>
-            </div>
-          </div>
+          <CanvasBloom />
         </div>
       </section>
 
@@ -146,12 +113,12 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 px-6 bg-warm-50">
+      <section id="pricing" className="py-20 px-6 bg-parchment">
         <div className="max-w-5xl mx-auto">
           <h2 className="font-display text-display-md text-warm-600 text-center mb-4">
             Simple pricing
           </h2>
-          <p className="text-warm-200 text-center mb-16 text-lg">
+          <p className="text-warm-300 text-center mb-16 text-lg">
             Start free. Upgrade when you need more.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
@@ -207,11 +174,11 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="py-12 px-6 border-t border-warm-400/10">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <span className="font-display text-sm text-warm-300">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+          <span className="font-display text-sm text-warm-400">
             AdventureBuildr AI
           </span>
-          <span className="text-xs text-warm-200">
+          <span className="text-xs text-warm-300 text-center sm:text-right">
             The future of interactive storytelling.
           </span>
         </div>
@@ -230,14 +197,14 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="p-6 rounded-standard border border-warm-400/10 hover:shadow-elevated transition-shadow duration-150">
-      <div className="w-10 h-10 rounded-standard bg-amber-story/10 flex items-center justify-center text-amber-story mb-4">
+    <div className="p-6 rounded-standard border border-warm-400/10 hover:shadow-elevated transition-shadow duration-200 flex flex-col">
+      <div className="w-10 h-10 rounded-standard bg-amber-story/10 flex items-center justify-center text-amber-story mb-4 flex-shrink-0">
         {icon}
       </div>
       <h3 className="font-display text-lg font-semibold text-warm-500 mb-2">
         {title}
       </h3>
-      <p className="text-warm-200 text-sm leading-relaxed">{description}</p>
+      <p className="text-warm-300 text-sm leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -261,11 +228,11 @@ function PricingCard({
 }) {
   return (
     <div
-      className={`p-8 rounded-standard border ${
+      className={`p-8 rounded-standard bg-white border ${
         highlighted
           ? "border-amber-story shadow-elevated"
-          : "border-warm-400/10"
-      }`}
+          : "border-warm-400/15"
+      } flex flex-col`}
     >
       <h3 className="font-display text-xl font-semibold text-warm-500 mb-2">
         {name}
@@ -274,22 +241,22 @@ function PricingCard({
         <span className="font-display text-display-sm text-warm-600">
           {price}
         </span>
-        <span className="text-warm-200 text-sm">{period}</span>
+        <span className="text-warm-300 text-sm ml-1">{period}</span>
       </div>
-      <ul className="space-y-3 mb-8">
+      <ul className="space-y-3 mb-8 flex-1">
         {features.map((feature) => (
-          <li key={feature} className="text-sm text-warm-300 flex items-start gap-2">
-            <span className="text-amber-story mt-0.5">&#10003;</span>
+          <li key={feature} className="text-sm text-warm-400 flex items-start gap-2">
+            <span className="text-amber-story mt-0.5 flex-shrink-0">&#10003;</span>
             {feature}
           </li>
         ))}
       </ul>
       <Link
         href={ctaHref}
-        className={`block text-center py-2.5 px-4 rounded-tight text-sm font-medium transition-colors ${
+        className={`block text-center py-3 px-4 rounded-standard text-sm font-medium transition-colors min-h-[44px] flex items-center justify-center ${
           highlighted
             ? "bg-amber-story text-white hover:bg-amber-dark"
-            : "border border-warm-400/20 text-warm-300 hover:border-warm-400/40"
+            : "border border-warm-400/20 text-warm-400 hover:border-warm-400/40 hover:text-warm-500"
         }`}
       >
         {cta}

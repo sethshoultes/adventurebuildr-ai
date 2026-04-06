@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 import { EditorClient } from "./EditorClient";
 
 interface EditorPageProps {
@@ -9,7 +9,8 @@ interface EditorPageProps {
 
 export default async function EditorPage({ params }: EditorPageProps) {
   const { storyId } = await params;
-  const { userId } = await auth();
+  const _authUser = await getAuthUser();
+  const userId = _authUser?.userId;
   if (!userId) redirect("/sign-in");
 
   const story = await db.story.findUnique({

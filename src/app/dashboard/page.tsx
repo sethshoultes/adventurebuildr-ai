@@ -1,14 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
 import { DashboardClient } from "./DashboardClient";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  const user = await getAuthUser();
+  if (!user) redirect("/sign-in");
+
+  // Ensure dev user exists in DB
+  await db.user.upsert({
+    where: { id: user.userId },
+    update: {},
+    create: {
+      id: user.userId,
+      email: "dev@adventurebuildr.com",
+    },
+  });
 
   const stories = await db.story.findMany({
-    where: { authorId: userId },
+    where: { authorId: user.userId },
     orderBy: { updatedAt: "desc" },
     include: {
       _count: {

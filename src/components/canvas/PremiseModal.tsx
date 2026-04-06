@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sparkles } from "lucide-react";
 
 const GENRES = [
   "fantasy",
@@ -45,10 +47,10 @@ const TONES = [
 ] as const;
 
 const DEPTHS = [
-  { value: 5, label: "Quick (5 episodes)" },
-  { value: 10, label: "Standard (10 episodes)" },
-  { value: 20, label: "Deep (20 episodes)" },
-  { value: 50, label: "Epic (50 episodes)" },
+  { value: 5, label: "Quick — 5 episodes" },
+  { value: 10, label: "Standard — 10 episodes" },
+  { value: 20, label: "Deep — 20 episodes" },
+  { value: 50, label: "Epic — 50 episodes" },
 ] as const;
 
 interface PremiseFormData {
@@ -91,14 +93,56 @@ export function PremiseModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Generate Story Outline</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-story" />
+            Generate Story Outline
+          </DialogTitle>
           <DialogDescription>
             Describe your story and AI will generate a complete branching
-            narrative structure.
+            narrative — episodes, choices, and all.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {/* Premise first — it's the creative spark */}
+          <div className="space-y-2">
+            <Label htmlFor="premise">
+              Premise{" "}
+              <span className="text-warm-200 font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="premise"
+              value={premise}
+              onChange={(e) => setPremise(e.target.value)}
+              placeholder="A detective in 1940s Hong Kong discovers her client is already dead..."
+              rows={2}
+              className="resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="protagonist">Protagonist</Label>
+            <Input
+              id="protagonist"
+              value={protagonist}
+              onChange={(e) => setProtagonist(e.target.value)}
+              placeholder="Elena, a disgraced detective with a drinking problem"
+              maxLength={100}
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="conflict">Central Conflict</Label>
+            <Input
+              id="conflict"
+              value={conflict}
+              onChange={(e) => setConflict(e.target.value)}
+              placeholder="She must solve her sister's murder without exposing her own involvement"
+              maxLength={200}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="genre">Genre</Label>
@@ -134,28 +178,6 @@ export function PremiseModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="protagonist">Protagonist</Label>
-            <Input
-              id="protagonist"
-              value={protagonist}
-              onChange={(e) => setProtagonist(e.target.value)}
-              placeholder="Elena, a disgraced detective with a drinking problem"
-              maxLength={100}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="conflict">Central Conflict</Label>
-            <Input
-              id="conflict"
-              value={conflict}
-              onChange={(e) => setConflict(e.target.value)}
-              placeholder="She must solve her own sister's murder without exposing her involvement"
-              maxLength={200}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="depth">Story Depth</Label>
             <Select
               value={String(depth)}
@@ -174,29 +196,27 @@ export function PremiseModal({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="premise">
-              Additional Premise{" "}
-              <span className="text-warm-200 font-normal">(optional)</span>
-            </Label>
-            <Input
-              id="premise"
-              value={premise}
-              onChange={(e) => setPremise(e.target.value)}
-              placeholder="A detective in 1940s Hong Kong discovers her client is already dead..."
-            />
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isGenerating}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={!isValid || isGenerating}>
-              {isGenerating ? "Generating..." : "Generate Story"}
+              {isGenerating ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 mr-2 animate-pulse" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 mr-2" />
+                  Generate Story
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

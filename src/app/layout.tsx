@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+
+const hasClerk = !!process.env.CLERK_SECRET_KEY && process.env.CLERK_SECRET_KEY !== "";
 
 export const metadata: Metadata = {
   title: "AdventureBuildr AI — Interactive Storytelling Platform",
@@ -13,18 +14,28 @@ export const metadata: Metadata = {
   },
 };
 
+function ClerkWrapper({ children }: { children: React.ReactNode }) {
+  // Dynamic import only when Clerk is configured
+  const { ClerkProvider } = require("@clerk/nextjs");
+  return <ClerkProvider>{children}</ClerkProvider>;
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-screen bg-white font-body antialiased">
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang="en">
+      <body className="min-h-screen bg-white font-body antialiased">
+        {children}
+      </body>
+    </html>
   );
+
+  if (hasClerk) {
+    return <ClerkWrapper>{content}</ClerkWrapper>;
+  }
+
+  return content;
 }

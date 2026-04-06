@@ -56,7 +56,9 @@ export function TypewriterText({
     const totalLength = plainText.current.length;
     if (totalLength === 0) return;
 
-    let currentIndex = displayedLength;
+    // Use a local ref so the animation loop doesn't restart on every state update.
+    // displayedLength state is only used for rendering; the loop tracks its own index.
+    let currentIndex = 0;
 
     const animate = (timestamp: number) => {
       if (lastTimeRef.current === 0) {
@@ -89,7 +91,8 @@ export function TypewriterText({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [html, isComplete, getPause, onComplete, displayedLength]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, isComplete]);
 
   const handleClick = useCallback(() => {
     if (!isComplete) {

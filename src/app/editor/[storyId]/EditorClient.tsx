@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
+// import { UserButton } from "@clerk/nextjs";
 import { ArrowLeft, Eye, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoryProvider, useStory } from "@/components/providers/StoryProvider";
@@ -53,7 +53,7 @@ function EditorInner({ story: initialStory }: { story: Story }) {
           <Button variant="ghost" size="icon">
             <Settings className="w-4 h-4" />
           </Button>
-          <UserButton afterSignOutUrl="/" />
+          <div className="w-8 h-8 rounded-full bg-amber-story/20 flex items-center justify-center text-amber-story text-xs font-bold">D</div>
         </div>
       </header>
 

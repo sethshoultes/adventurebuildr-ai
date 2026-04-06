@@ -22,15 +22,15 @@ export function ChoiceCards({ choices, onChoose, visible }: ChoiceCardsProps) {
         <button
           key={choice.id}
           onClick={() => onChoose(choice)}
-          className="w-full text-left rounded-generous transition-all duration-150 ease-out hover:-translate-y-0.5 active:scale-[0.98] group"
+          className="w-full text-left rounded-generous transition-all duration-150 ease-out hover:-translate-y-0.5 active:scale-[0.98] group animate-fade-in"
           style={{
             backgroundColor: theme.cardBg,
             border: `1px solid ${theme.cardBorder}`,
             color: theme.cardText,
             padding: "16px 20px",
             minHeight: "56px",
-            animationDelay: `${400 + index * 150}ms`,
-            animationFillMode: "backwards",
+            animationDelay: `${index * 120}ms`,
+            animationFillMode: "both",
           }}
         >
           <div className="flex items-center justify-between">
