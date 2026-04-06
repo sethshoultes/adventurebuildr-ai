@@ -27,6 +27,7 @@ export function EpisodeEditor({
   const [rewriteOpen, setRewriteOpen] = useState(false);
   const [rewritePrompt, setRewritePrompt] = useState("");
   const [isRewriting, setIsRewriting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedSaveRef = React.useRef<((id: string, content: string) => void) | null>(null);
@@ -78,6 +79,31 @@ export function EpisodeEditor({
     });
   }, [episodeId, storyId, title, updateEpisode]);
 
+  const handleGenerateContent = useCallback(async () => {
+    if (!editor) return;
+    setIsGenerating(true);
+    try {
+      const response = await fetch(
+        `/api/stories/${storyId}/generate/episode/${episodeId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+
+      if (!response.ok) throw new Error("Generation failed");
+      const updated = await response.json();
+
+      editor.commands.setContent(updated.content || "");
+      updateEpisode(episodeId, { content: updated.content });
+    } catch (err) {
+      console.error("Failed to generate content:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [editor, storyId, episodeId, updateEpisode]);
+
   const handleRewrite = useCallback(async () => {
     if (!rewritePrompt.trim() || !editor) return;
 
@@ -88,37 +114,23 @@ export function EpisodeEditor({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instruction: rewritePrompt,
-            currentContent: editor.getHTML(),
-          }),
+          body: JSON.stringify({ instruction: rewritePrompt }),
         }
       );
 
       if (!response.ok) throw new Error("Rewrite failed");
+      const updated = await response.json();
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let content = "";
-
-      if (reader) {
-        editor.commands.setContent("");
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          content += decoder.decode(value, { stream: true });
-          editor.commands.setContent(content);
-        }
-      }
-
+      editor.commands.setContent(updated.content || "");
+      updateEpisode(episodeId, { content: updated.content });
       setRewriteOpen(false);
       setRewritePrompt("");
-    } catch {
-      // Error handling would go here
+    } catch (err) {
+      console.error("Failed to rewrite:", err);
     } finally {
       setIsRewriting(false);
     }
-  }, [rewritePrompt, editor, storyId, episodeId]);
+  }, [rewritePrompt, editor, storyId, episodeId, updateEpisode]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -198,6 +210,31 @@ export function EpisodeEditor({
           placeholder="Episode title"
         />
       </div>
+
+      {/* Generate content CTA when episode is empty */}
+      {wordCount === 0 && !isGenerating && (
+        <div className="px-6 py-6 text-center border-b border-warm-400/10 bg-amber-story/[0.03]">
+          <p className="text-warm-300 text-sm mb-3">
+            This episode has no content yet. Let AI write it based on the story outline.
+          </p>
+          <button
+            onClick={handleGenerateContent}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-story text-white text-sm font-medium rounded-tight hover:bg-amber-dark transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Write this episode with AI
+          </button>
+        </div>
+      )}
+
+      {isGenerating && (
+        <div className="px-6 py-6 text-center border-b border-warm-400/10 bg-amber-story/[0.03]">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-story animate-pulse" />
+            <span className="text-sm text-amber-story">Writing episode content...</span>
+          </div>
+        </div>
+      )}
 
       {/* Tiptap Editor */}
       <div className="flex-1 px-6 py-4">

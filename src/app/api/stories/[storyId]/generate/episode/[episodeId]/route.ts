@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { streamText } from "ai";
+import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { db } from "@/lib/db";
 import { buildEpisodePrompt, buildWorldBibleSystemPrompt } from "@/lib/ai/prompt-builder";
@@ -35,10 +35,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Episode not found" }, { status: 404 });
   }
 
-  const body = await req.json();
-  const { instruction } = body;
+  const body = await req.json().catch(() => ({}));
+  const instruction = (body as { instruction?: string }).instruction;
 
-  // Build context
   const incomingChoices = story.choices
     .filter((c) => c.toEpisodeId === episodeId)
     .map((c) => c.label);
@@ -67,7 +66,6 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   let prompt: string;
 
   if (instruction) {
-    // Rewrite mode
     prompt = `You are rewriting an episode of an interactive fiction story.
 
 ${worldBiblePrompt}
@@ -77,9 +75,8 @@ ${episode.content}
 
 AUTHOR'S INSTRUCTION: ${instruction}
 
-Rewrite the episode content following the instruction. Keep the same general narrative position in the story. Output HTML paragraphs.`;
+Rewrite the episode content following the instruction. Keep the same general narrative position in the story. Output HTML paragraphs (<p> tags).`;
   } else {
-    // Generate mode
     prompt = buildEpisodePrompt(
       {
         title: episode.title,
@@ -92,15 +89,23 @@ Rewrite the episode content following the instruction. Keep the same general nar
     );
   }
 
-  const result = streamText({
-    model: anthropic("claude-sonnet-4-20250514"),
-    system: worldBiblePrompt || undefined,
-    prompt,
-    maxTokens: 600,
-  });
+  try {
+    const result = await generateText({
+      model: anthropic("claude-sonnet-4-20250514"),
+      system: worldBiblePrompt || undefined,
+      prompt,
+      maxTokens: 800,
+    });
 
-  // Log generation cost asynchronously
-  result.usage.then(async (usage) => {
+    const content = result.text;
+
+    // Save content to the episode in the database
+    const updated = await db.episode.update({
+      where: { id: episodeId },
+      data: { content },
+    });
+
+    // Log generation cost
     try {
       await db.aIGeneration.create({
         data: {
@@ -108,18 +113,24 @@ Rewrite the episode content following the instruction. Keep the same general nar
           episodeId,
           generationType: instruction ? "episode_rewrite" : "episode_content",
           model: "claude-sonnet-4-20250514",
-          promptTokens: usage.promptTokens,
-          completionTokens: usage.completionTokens,
-          totalTokens: usage.totalTokens,
+          promptTokens: result.usage.promptTokens,
+          completionTokens: result.usage.completionTokens,
+          totalTokens: result.usage.totalTokens,
           costUsd:
-            (usage.promptTokens / 1000) * 0.003 +
-            (usage.completionTokens / 1000) * 0.015,
+            (result.usage.promptTokens / 1000) * 0.003 +
+            (result.usage.completionTokens / 1000) * 0.015,
         },
       });
     } catch {
       // Non-critical
     }
-  });
 
-  return result.toTextStreamResponse();
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Episode generation error:", error);
+    return NextResponse.json(
+      { error: "Failed to generate episode content" },
+      { status: 500 }
+    );
+  }
 }
