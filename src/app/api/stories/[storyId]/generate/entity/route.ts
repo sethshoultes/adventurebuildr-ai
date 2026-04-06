@@ -4,6 +4,7 @@ import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { checkTokenBudget, recordTokenUsage } from "@/lib/metering";
 import { buildEntityPrompt } from "@/lib/ai/prompt-builder";
 
 interface RouteContext {
@@ -35,6 +36,20 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json(
       { error: "Name and type are required" },
       { status: 400 }
+    );
+  }
+
+  // Check token budget before generation
+  const budget = await checkTokenBudget(userId);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      {
+        error: "Token budget exceeded",
+        used: budget.used,
+        limit: budget.limit,
+        upgradeUrl: "/pricing",
+      },
+      { status: 402 }
     );
   }
 
@@ -70,6 +85,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   } catch {
     // Non-critical
   }
+
+  // Record token usage against user budget
+  await recordTokenUsage(userId, usage.totalTokens);
 
   return NextResponse.json(object);
 }

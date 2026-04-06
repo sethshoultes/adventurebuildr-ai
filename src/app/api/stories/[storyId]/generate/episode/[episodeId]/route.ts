@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { db } from "@/lib/db";
+import { checkTokenBudget, recordTokenUsage } from "@/lib/metering";
 import { buildEpisodePrompt, buildWorldBibleSystemPrompt } from "@/lib/ai/prompt-builder";
 
 interface RouteContext {
@@ -28,6 +29,20 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   if (!story || story.authorId !== userId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Check token budget before generation
+  const budget = await checkTokenBudget(userId);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      {
+        error: "Token budget exceeded",
+        used: budget.used,
+        limit: budget.limit,
+        upgradeUrl: "/pricing",
+      },
+      { status: 402 }
+    );
   }
 
   const episode = story.episodes.find((ep) => ep.id === episodeId);
@@ -124,6 +139,9 @@ Rewrite the episode content following the instruction. Keep the same general nar
     } catch {
       // Non-critical
     }
+
+    // Record token usage against user budget
+    await recordTokenUsage(userId, result.usage.totalTokens);
 
     return NextResponse.json(updated);
   } catch (error) {

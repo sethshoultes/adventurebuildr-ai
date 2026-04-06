@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { db } from "@/lib/db";
+import { checkTokenBudget, recordTokenUsage } from "@/lib/metering";
 import { OutlineSchema } from "@/lib/ai/generate-story";
 import { buildOutlinePrompt, buildWorldBibleSystemPrompt } from "@/lib/ai/prompt-builder";
 
@@ -25,6 +26,20 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
 
   if (!story || story.authorId !== userId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Check token budget before generation
+  const budget = await checkTokenBudget(userId);
+  if (!budget.allowed) {
+    return NextResponse.json(
+      {
+        error: "Token budget exceeded",
+        used: budget.used,
+        limit: budget.limit,
+        upgradeUrl: "/pricing",
+      },
+      { status: 402 }
+    );
   }
 
   const body = await req.json();
@@ -82,6 +97,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     } catch {
       // Non-critical
     }
+
+    // Record token usage against user budget
+    await recordTokenUsage(userId, result.usage.totalTokens);
 
     // Save generated episodes and choices to DB
     const outline = result.object;
