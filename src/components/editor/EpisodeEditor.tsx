@@ -28,6 +28,27 @@ export function EpisodeEditor({
   const [rewritePrompt, setRewritePrompt] = useState("");
   const [isRewriting, setIsRewriting] = useState(false);
 
+  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSaveRef = React.useRef<((id: string, content: string) => void) | null>(null);
+
+  const debouncedSave = useCallback(
+    (id: string, content: string) => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => {
+        updateEpisode(id, { content });
+        fetch(`/api/stories/${storyId}/episodes/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        }).catch((err) => console.error("Failed to save episode content:", err));
+      }, 1500);
+    },
+    [storyId, updateEpisode]
+  );
+
+  // Keep ref in sync so Tiptap's onUpdate always calls the latest version
+  debouncedSaveRef.current = debouncedSave;
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -44,26 +65,9 @@ export function EpisodeEditor({
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      debouncedSave(episodeId, html);
+      debouncedSaveRef.current?.(episodeId, html);
     },
   });
-
-  const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
-
-  const debouncedSave = useCallback(
-    (id: string, content: string) => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        updateEpisode(id, { content });
-        fetch(`/api/stories/${storyId}/episodes/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
-        });
-      }, 1500);
-    },
-    [storyId, updateEpisode]
-  );
 
   const handleTitleSave = useCallback(() => {
     updateEpisode(episodeId, { title });
