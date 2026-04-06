@@ -34,6 +34,7 @@ export function SplitPane({
           style={{ width: "50%" }}
         >
           <EpisodeEditor
+            key={selectedEpisodeId}
             episodeId={selectedEpisodeId}
             storyId={storyId}
             onClose={() => onSelectEpisode(null)}

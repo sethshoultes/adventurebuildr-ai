@@ -78,6 +78,18 @@ function ReaderInner({
     setTimeout(() => setShowChoices(true), 400);
   }, []);
 
+  // Show choices immediately when episode has no content
+  useEffect(() => {
+    if (currentEpisode && (!currentEpisode.content || currentEpisode.content.length === 0)) {
+      setTimeout(() => setShowChoices(true), 600);
+    }
+  }, [currentEpisode]);
+
+  // Reset showChoices when navigating to new episode
+  useEffect(() => {
+    setShowChoices(false);
+  }, [currentEpisodeId]);
+
   const handleRewind = useCallback(
     (targetEpisodeId: string, historyIndex: number) => {
       setChoiceHistory((prev) => prev.slice(0, historyIndex));
@@ -193,10 +205,17 @@ function ReaderInner({
             {currentEpisode.title}
           </h2>
 
-          <TypewriterText
-            html={currentEpisode.content}
-            onComplete={handleTypewriterComplete}
-          />
+          {currentEpisode.content && currentEpisode.content.length > 0 ? (
+            <TypewriterText
+              key={currentEpisode.id}
+              html={currentEpisode.content}
+              onComplete={handleTypewriterComplete}
+            />
+          ) : (
+            <div className="mb-8 opacity-60 italic" style={{ color: theme.body }}>
+              <p>{currentEpisode.summary || "This episode hasn't been written yet."}</p>
+            </div>
+          )}
 
           <ChoiceCards
             choices={currentChoices}

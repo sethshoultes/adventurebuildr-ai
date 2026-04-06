@@ -159,7 +159,8 @@ export function TypewriterText({
     >
       {/* Content is author-controlled HTML from Tiptap editor, not user-submitted input */}
       <div
-        className="prose max-w-none"
+        className="prose max-w-none prose-p:text-inherit prose-strong:text-inherit prose-em:text-inherit prose-headings:text-inherit"
+        style={{ color: "inherit" }}
         dangerouslySetInnerHTML={{ __html: getVisibleHtml() }}
       />
       {!isComplete && <span className="typewriter-cursor" />}
