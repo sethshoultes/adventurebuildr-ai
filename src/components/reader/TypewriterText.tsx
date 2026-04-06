@@ -28,7 +28,7 @@ export function TypewriterText({
   const [isComplete, setIsComplete] = useState(false);
   const plainText = useRef("");
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const lastTimeRef = useRef(0);
 
   // Extract plain text from HTML for length calculation

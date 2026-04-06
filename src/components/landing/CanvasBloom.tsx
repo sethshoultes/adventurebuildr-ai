@@ -85,8 +85,17 @@ export default function CanvasBloom() {
   const startBloom = useCallback(() => {
     reset();
     setTimeout(() => {
-      setPhase("blooming");
-      setStatusText("Analyzing premise...");
+      if (prefersReducedMotion.current) {
+        // Skip animation — show full graph immediately
+        setNodes(STORY_NODES.map(n => ({ ...n, visible: true })));
+        setEdges(STORY_EDGES.map(e => ({ ...e, visible: true })));
+        setCurrentStep(STORY_NODES.length + STORY_EDGES.length);
+        setPhase("complete");
+        setStatusText("Story universe generated — 12 episodes, 14 paths");
+      } else {
+        setPhase("blooming");
+        setStatusText("Analyzing premise...");
+      }
     }, 300);
   }, [reset]);
 
@@ -160,7 +169,7 @@ export default function CanvasBloom() {
         }}
       />
 
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 560">
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 450">
         {/* Edges */}
         {edges.map(edge => {
           const fromNode = getNodeById(edge.from);
@@ -171,12 +180,11 @@ export default function CanvasBloom() {
             <g key={edge.id}>
               <line
                 x1={fromNode.x}
-                y1={fromNode.y + 22}
+                y1={fromNode.y + 18}
                 x2={toNode.x}
-                y2={toNode.y - 2}
+                y2={toNode.y - 18}
                 stroke="rgba(200, 131, 58, 0.4)"
                 strokeWidth="1.5"
-                strokeDasharray={edge.visible ? "0" : "4 4"}
                 opacity={edge.visible ? 1 : 0}
                 style={{
                   transition: "opacity 0.6s ease-out",
@@ -211,11 +219,9 @@ export default function CanvasBloom() {
             <g
               key={node.id}
               opacity={node.visible ? 1 : 0}
-              transform={`translate(${node.x - nodeWidth / 2}, ${node.y - nodeHeight / 2}) scale(${node.visible ? 1 : 0.5})`}
+              transform={`translate(${node.x - nodeWidth / 2}, ${node.y - nodeHeight / 2})`}
               style={{
-                transition: "opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                transformOrigin: `${nodeWidth / 2}px ${nodeHeight / 2}px`,
-                transformBox: "fill-box",
+                transition: "opacity 0.5s ease-out",
               }}
             >
               {/* Glow effect for start node */}
@@ -278,7 +284,7 @@ export default function CanvasBloom() {
           <div className="flex items-center gap-2">
             <div
               className={`w-2.5 h-2.5 rounded-full ${
-                phase === "complete" ? "bg-green-400" : phase === "blooming" ? "bg-amber-story animate-pulse" : "bg-warm-300/40"
+                phase === "complete" ? "bg-green-400" : phase === "blooming" ? "bg-amber-story animate-pulse" : "bg-parchment/30"
               }`}
             />
             <span className="text-parchment/60 text-xs font-mono">{statusText}</span>
