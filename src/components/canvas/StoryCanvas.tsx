@@ -161,6 +161,19 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
     [setEdges, pushUndo]
   );
 
+  const onNodeDragStop = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      const { x, y } = node.position;
+      updateEpisode(node.id, { positionX: x, positionY: y });
+      fetch(`/api/stories/${storyId}/episodes/${node.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionX: x, positionY: y }),
+      }).catch((err) => console.error("Failed to save node position:", err));
+    },
+    [storyId, updateEpisode]
+  );
+
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       onSelectEpisode(node.data.episodeId);
@@ -184,62 +197,90 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
     });
   }
 
-  function handleAddChoiceFromNode(episodeId: string) {
+  async function handleAddChoiceFromNode(episodeId: string) {
     pushUndo();
     const sourceNode = nodes.find((n) => n.id === episodeId);
-    const newEpisode: Episode = {
-      id: `temp-${Date.now()}`,
-      storyId,
-      title: "New Episode",
-      content: "",
-      summary: null,
-      isStartEpisode: false,
-      positionX: (sourceNode?.position.x || 0) + 150,
-      positionY: (sourceNode?.position.y || 0) + 200,
-      season: 1,
-      episodeNumber: episodes.length + 1,
-      metadata: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
-    addEpisode(newEpisode);
+    // Count existing children of this node to spread them out horizontally
+    const existingChildren = edges.filter((e) => e.source === episodeId).length;
+    const offsetX = (existingChildren - 0.5) * 300;
 
-    const newNode: Node = {
-      id: newEpisode.id,
-      type: "episode",
-      position: { x: newEpisode.positionX, y: newEpisode.positionY },
-      data: {
-        title: newEpisode.title,
-        summary: "",
-        isStart: false,
-        hasContent: false,
-        aiGenerating: false,
-        episodeNumber: newEpisode.episodeNumber,
-        season: 1,
-        episodeId: newEpisode.id,
-        onEdit: (id: string) => onSelectEpisode(id),
-        onAddChoice: handleAddChoiceFromNode,
-        onGenerate: handleGenerateFromNode,
-      },
-    };
+    const posX = (sourceNode?.position.x || 0) + offsetX;
+    const posY = (sourceNode?.position.y || 0) + 220;
 
-    setNodes((nds) => [...nds, newNode]);
+    try {
+      // Create episode in the database
+      const epResponse = await fetch(`/api/stories/${storyId}/episodes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New Episode",
+          content: "",
+          positionX: posX,
+          positionY: posY,
+          isStartEpisode: false,
+        }),
+      });
 
-    const newEdge: Edge = {
-      id: `edge-${Date.now()}`,
-      source: episodeId,
-      target: newEpisode.id,
-      type: "choice",
-      data: {
-        label: "New choice",
-        choiceId: `temp-edge-${Date.now()}`,
-        conditions: [],
-        onLabelChange: handleChoiceLabelChange,
-      },
-    };
+      if (!epResponse.ok) throw new Error("Failed to create episode");
+      const savedEpisode = await epResponse.json();
 
-    setEdges((eds) => [...eds, newEdge]);
+      // Create choice (edge) in the database
+      const chResponse = await fetch(`/api/stories/${storyId}/choices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromEpisodeId: episodeId,
+          toEpisodeId: savedEpisode.id,
+          label: "New choice",
+        }),
+      });
+
+      if (!chResponse.ok) throw new Error("Failed to create choice");
+      const savedChoice = await chResponse.json();
+
+      // Add to local state with real IDs
+      addEpisode(savedEpisode);
+      addChoice(savedChoice);
+
+      const newNode: Node = {
+        id: savedEpisode.id,
+        type: "episode",
+        position: { x: posX, y: posY },
+        data: {
+          title: savedEpisode.title,
+          summary: "",
+          isStart: false,
+          hasContent: false,
+          aiGenerating: false,
+          episodeNumber: savedEpisode.episodeNumber,
+          season: savedEpisode.season || 1,
+          episodeId: savedEpisode.id,
+          onEdit: (id: string) => onSelectEpisode(id),
+          onAddChoice: handleAddChoiceFromNode,
+          onGenerate: handleGenerateFromNode,
+        },
+      };
+
+      setNodes((nds) => [...nds, newNode]);
+
+      const newEdge: Edge = {
+        id: savedChoice.id,
+        source: episodeId,
+        target: savedEpisode.id,
+        type: "choice",
+        data: {
+          label: savedChoice.label,
+          choiceId: savedChoice.id,
+          conditions: [],
+          onLabelChange: handleChoiceLabelChange,
+        },
+      };
+
+      setEdges((eds) => [...eds, newEdge]);
+    } catch (err) {
+      console.error("Failed to add choice:", err);
+    }
   }
 
   async function handleGenerateFromNode(_episodeId: string) {
@@ -256,29 +297,51 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
     setEdges(layoutedEdges);
   }, [nodes, edges, setNodes, setEdges, pushUndo]);
 
-  const handleAddEpisode = useCallback(() => {
+  const handleAddEpisode = useCallback(async () => {
     pushUndo();
-    const id = `temp-${Date.now()}`;
-    const newNode: Node = {
-      id,
-      type: "episode",
-      position: { x: 400, y: nodes.length * 200 },
-      data: {
-        title: "New Episode",
-        summary: "",
-        isStart: false,
-        hasContent: false,
-        aiGenerating: false,
-        episodeNumber: nodes.length + 1,
-        season: 1,
-        episodeId: id,
-        onEdit: (epId: string) => onSelectEpisode(epId),
-        onAddChoice: handleAddChoiceFromNode,
-        onGenerate: handleGenerateFromNode,
-      },
-    };
-    setNodes((nds) => [...nds, newNode]);
-  }, [nodes, setNodes, pushUndo, onSelectEpisode]);
+    const posY = nodes.length * 220;
+
+    try {
+      const response = await fetch(`/api/stories/${storyId}/episodes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New Episode",
+          content: "",
+          positionX: 400,
+          positionY: posY,
+          isStartEpisode: false,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to create episode");
+      const savedEpisode = await response.json();
+
+      addEpisode(savedEpisode);
+
+      const newNode: Node = {
+        id: savedEpisode.id,
+        type: "episode",
+        position: { x: 400, y: posY },
+        data: {
+          title: savedEpisode.title,
+          summary: "",
+          isStart: false,
+          hasContent: false,
+          aiGenerating: false,
+          episodeNumber: savedEpisode.episodeNumber,
+          season: savedEpisode.season || 1,
+          episodeId: savedEpisode.id,
+          onEdit: (epId: string) => onSelectEpisode(epId),
+          onAddChoice: handleAddChoiceFromNode,
+          onGenerate: handleGenerateFromNode,
+        },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    } catch (err) {
+      console.error("Failed to add episode:", err);
+    }
+  }, [nodes, setNodes, pushUndo, onSelectEpisode, storyId, addEpisode]);
 
   const handleGenerate = useCallback(
     async (data: {
@@ -299,83 +362,69 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...data,
-              worldBible: [],
-            }),
+            body: JSON.stringify(data),
           }
         );
 
-        if (!response.ok) throw new Error("Generation failed");
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let accumulated = "";
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            accumulated += decoder.decode(value, { stream: true });
-          }
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Generation failed");
         }
 
-        // Parse the accumulated outline
-        try {
-          const outline = JSON.parse(accumulated);
+        // The API now returns the full story with episodes + choices saved to DB
+        const story = await response.json();
+        const eps = story.episodes || [];
+        const chs = story.choices || [];
 
-          const newNodes: Node[] = (outline.nodes || []).map(
-            (n: { id: string; title: string; summary: string; x: number; y: number; isStart?: boolean }, i: number) => ({
-              id: n.id,
-              type: "episode",
-              position: { x: n.x, y: n.y },
-              data: {
-                title: n.title,
-                summary: n.summary,
-                isStart: n.isStart || false,
-                hasContent: false,
-                aiGenerating: false,
-                episodeNumber: i + 1,
-                season: 1,
-                episodeId: n.id,
-                onEdit: (epId: string) => onSelectEpisode(epId),
-                onAddChoice: handleAddChoiceFromNode,
-                onGenerate: handleGenerateFromNode,
-              },
-            })
-          );
+        pushUndo();
 
-          const newEdges: Edge[] = (outline.edges || []).map(
-            (e: { id: string; fromId: string; toId: string; label: string }) => ({
-              id: e.id,
-              source: e.fromId,
-              target: e.toId,
-              type: "choice",
-              data: {
-                label: e.label,
-                choiceId: e.id,
-                conditions: [],
-                onLabelChange: handleChoiceLabelChange,
-              },
-            })
-          );
+        const newNodes: Node[] = eps.map(
+          (ep: { id: string; title: string; summary: string | null; positionX: number; positionY: number; isStartEpisode: boolean; episodeNumber: number; content: string }, i: number) => ({
+            id: ep.id,
+            type: "episode",
+            position: { x: ep.positionX, y: ep.positionY },
+            data: {
+              title: ep.title,
+              summary: ep.summary || "",
+              isStart: ep.isStartEpisode,
+              hasContent: (ep.content || "").length > 0,
+              aiGenerating: false,
+              episodeNumber: ep.episodeNumber,
+              season: 1,
+              episodeId: ep.id,
+              onEdit: (epId: string) => onSelectEpisode(epId),
+              onAddChoice: handleAddChoiceFromNode,
+              onGenerate: handleGenerateFromNode,
+            },
+          })
+        );
 
-          pushUndo();
+        const newEdges: Edge[] = chs.map(
+          (ch: { id: string; fromEpisodeId: string; toEpisodeId: string; label: string }) => ({
+            id: ch.id,
+            source: ch.fromEpisodeId,
+            target: ch.toEpisodeId,
+            type: "choice",
+            data: {
+              label: ch.label,
+              choiceId: ch.id,
+              conditions: [],
+              onLabelChange: handleChoiceLabelChange,
+            },
+          })
+        );
 
-          const { nodes: layoutedNodes, edges: layoutedEdges } =
-            getLayoutedElements(newNodes, newEdges);
-          setNodes(layoutedNodes);
-          setEdges(layoutedEdges);
+        const { nodes: layoutedNodes, edges: layoutedEdges } =
+          getLayoutedElements(newNodes, newEdges);
+        setNodes(layoutedNodes);
+        setEdges(layoutedEdges);
 
-          setStatusText("Your story is ready.");
-          setTimeout(() => setStatusText(null), 3000);
-        } catch {
-          setStatusText("Failed to parse outline. Try again.");
-          setTimeout(() => setStatusText(null), 3000);
-        }
-      } catch {
-        setStatusText("Generation failed. Please try again.");
-        setTimeout(() => setStatusText(null), 3000);
+        setStatusText(`Story generated — ${eps.length} episodes, ${chs.length} paths`);
+        setTimeout(() => setStatusText(null), 5000);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Generation failed";
+        setStatusText(message);
+        setTimeout(() => setStatusText(null), 5000);
       } finally {
         setIsGenerating(false);
       }
@@ -392,6 +441,7 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -413,6 +463,7 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
         onAutoLayout={handleAutoLayout}
         onUndo={handleUndo}
         canUndo={undoStackRef.current.length > 0}
+        onOpenPremiseModal={() => setPremiseOpen(true)}
       />
 
       {/* Premise input area */}
