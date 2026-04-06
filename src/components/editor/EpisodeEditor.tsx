@@ -64,11 +64,25 @@ export function EpisodeEditor({
         class: "tiptap-editor",
       },
     },
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
+    onUpdate: ({ editor: ed }) => {
+      const html = ed.getHTML();
       debouncedSaveRef.current?.(episodeId, html);
     },
   });
+
+  // Fetch fresh content from DB when episode is selected (context may be stale)
+  useEffect(() => {
+    if (!editor || !episodeId) return;
+    fetch(`/api/stories/${storyId}/episodes/${episodeId}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.content && data.content !== editor.getHTML()) {
+          editor.commands.setContent(data.content);
+          updateEpisode(episodeId, { content: data.content });
+        }
+      })
+      .catch(() => {});
+  }, [editor, episodeId, storyId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTitleSave = useCallback(() => {
     updateEpisode(episodeId, { title });

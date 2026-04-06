@@ -75,6 +75,7 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
 
   const [premiseOpen, setPremiseOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const undoStackRef = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
 
@@ -284,8 +285,66 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
   }
 
   async function handleGenerateFromNode(_episodeId: string) {
-    // Placeholder for episode content generation
+    // Generate content for a single episode
+    setStatusText("Writing episode content...");
+    try {
+      const response = await fetch(
+        `/api/stories/${storyId}/generate/episode/${_episodeId}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }
+      );
+      if (response.ok) {
+        const updated = await response.json();
+        updateEpisode(_episodeId, { content: updated.content });
+        // Update node to show it has content
+        setNodes((nds) => nds.map((n) =>
+          n.id === _episodeId ? { ...n, data: { ...n.data, hasContent: true } } : n
+        ));
+        setStatusText("Episode content generated.");
+      } else {
+        setStatusText("Failed to generate content.");
+      }
+    } catch {
+      setStatusText("Generation error.");
+    }
+    setTimeout(() => setStatusText(null), 3000);
   }
+
+  const handleGenerateAllContent = useCallback(async () => {
+    const emptyEpisodes = episodes.filter((ep) => !ep.content || ep.content.length < 10);
+    if (emptyEpisodes.length === 0) {
+      setStatusText("All episodes already have content.");
+      setTimeout(() => setStatusText(null), 3000);
+      return;
+    }
+
+    setIsGeneratingContent(true);
+    setStatusText(`Writing content for ${emptyEpisodes.length} episodes...`);
+
+    let completed = 0;
+    for (const ep of emptyEpisodes) {
+      try {
+        const response = await fetch(
+          `/api/stories/${storyId}/generate/episode/${ep.id}`,
+          { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) }
+        );
+        if (response.ok) {
+          const updated = await response.json();
+          updateEpisode(ep.id, { content: updated.content });
+          setNodes((nds) => nds.map((n) =>
+            n.id === ep.id ? { ...n, data: { ...n.data, hasContent: true } } : n
+          ));
+        }
+        completed++;
+        setStatusText(`Writing content... ${completed}/${emptyEpisodes.length} episodes done`);
+      } catch {
+        completed++;
+      }
+    }
+
+    setIsGeneratingContent(false);
+    setStatusText(`Done — ${completed} episodes written.`);
+    setTimeout(() => setStatusText(null), 5000);
+  }, [episodes, storyId, updateEpisode, setNodes]);
 
   const handleAutoLayout = useCallback(() => {
     pushUndo();
@@ -464,6 +523,8 @@ function StoryCanvasInner({ storyId, onSelectEpisode }: StoryCanvasProps) {
         onUndo={handleUndo}
         canUndo={undoStackRef.current.length > 0}
         onOpenPremiseModal={() => setPremiseOpen(true)}
+        onGenerateAllContent={nodes.length > 1 ? handleGenerateAllContent : undefined}
+        isGeneratingContent={isGeneratingContent}
       />
 
       {/* Premise input area */}

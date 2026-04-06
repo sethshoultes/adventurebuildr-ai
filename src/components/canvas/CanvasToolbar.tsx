@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   Undo2,
   Sparkles,
+  Wand2,
 } from "lucide-react";
 
 interface CanvasToolbarProps {
@@ -17,6 +18,8 @@ interface CanvasToolbarProps {
   onUndo: () => void;
   canUndo: boolean;
   onOpenPremiseModal: () => void;
+  onGenerateAllContent?: () => void;
+  isGeneratingContent?: boolean;
 }
 
 export function CanvasToolbar({
@@ -25,6 +28,8 @@ export function CanvasToolbar({
   onUndo,
   canUndo,
   onOpenPremiseModal,
+  onGenerateAllContent,
+  isGeneratingContent,
 }: CanvasToolbarProps) {
   const reactFlowInstance = useReactFlow();
 
@@ -57,10 +62,19 @@ export function CanvasToolbar({
       />
       <ToolbarButton
         icon={<Sparkles className="w-[18px] h-[18px]" />}
-        tooltip="Generate with AI"
+        tooltip="Generate outline with AI"
         onClick={onOpenPremiseModal}
         highlight
       />
+      {onGenerateAllContent && (
+        <ToolbarButton
+          icon={<Wand2 className="w-[18px] h-[18px]" />}
+          tooltip="Write all episode content with AI"
+          onClick={onGenerateAllContent}
+          highlight
+          disabled={isGeneratingContent}
+        />
+      )}
 
       <div className="h-px bg-warm-400/10 my-1" />
 
